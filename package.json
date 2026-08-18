@@ -1,0 +1,19 @@
+{
+  "name": "labeltruth",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Decode packaged food labels into plain-English ingredient insights.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @labeltruth/web",
+    "dev:api": "npm run dev --workspace @labeltruth/api",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
