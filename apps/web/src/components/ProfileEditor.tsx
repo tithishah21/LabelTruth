@@ -49,7 +49,7 @@ export function ProfileEditor({ token, onClose, onProfileSaved }: ProfileEditorP
 
   // Local form state
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
-  const [fullName, setFullName] = useState("");
+  const [fullName, setFullName] = useState(() => localStorage.getItem("fullName") || "");
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
   const [selectedDiet, setSelectedDiet] = useState<string | null>(null);
 
@@ -62,8 +62,17 @@ export function ProfileEditor({ token, onClose, onProfileSaved }: ProfileEditorP
         });
 
         const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load profile");
+        }
+
         setProfile(data);
         setFullName(data.fullName || "");
+        if (data.fullName) {
+          localStorage.setItem("fullName", data.fullName);
+        } else {
+          localStorage.removeItem("fullName");
+        }
         setSelectedAllergies(data.allergies || []);
         setSelectedCondition(data.medicalCondition || null);
         setSelectedDiet(data.dietType || null);
@@ -97,11 +106,12 @@ export function ProfileEditor({ token, onClose, onProfileSaved }: ProfileEditorP
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to save profile");
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to save profile");
 
-      onProfileSaved(fullName.trim() || null);
+      const savedName = data.fullName || null;
+      setFullName(savedName || "");
+      onProfileSaved(savedName);
       setSuccess("Profile saved!");
       setTimeout(onClose, 1500);
     } catch (err) {

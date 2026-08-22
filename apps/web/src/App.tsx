@@ -62,9 +62,14 @@ export function App() {
     })
       .then((response) => (response.ok ? response.json() : null))
       .then((profile) => {
-        if (profile?.fullName) {
-          setFullName(profile.fullName);
-          localStorage.setItem("fullName", profile.fullName);
+        if (profile) {
+          const savedName = profile.fullName || null;
+          setFullName(savedName);
+          if (savedName) {
+            localStorage.setItem("fullName", savedName);
+          } else {
+            localStorage.removeItem("fullName");
+          }
         }
       })
       .catch(() => undefined);
