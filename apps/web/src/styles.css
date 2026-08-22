@@ -1001,7 +1001,227 @@ summary {
   }
 }
 
-@media (max-width: 520px) {
+/* ── Auth bar ── */
+
+.auth-bar {
+  background: linear-gradient(90deg, #faf7f2 0%, #fff5f5 100%);
+  border-bottom: 2px solid #e8e4dd;
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.auth-bar-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.auth-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #1a1410;
+}
+
+.auth-user svg {
+  color: #c62828;
+  background: #ffcccc;
+  border-radius: 50%;
+  padding: 5px;
+  box-sizing: content-box;
+}
+
+.auth-bar-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #ffcccc;
+  color: #c62828;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-logout:hover {
+  background: #ff9999;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #e8e4dd;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #1a1410;
+}
+
+.icon-button:hover {
+  background: #d4a574;
+  color: white;
+}
+
+/* ── Exposure section ── */
+
+.exposure-section {
+  background: white;
+  padding: 48px 20px;
+  margin: 48px 0;
+}
+
+.exposure-section .section-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.exposure-section .section-header h2 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1410;
+  margin: 0;
+}
+
+/* ── FAQ section ── */
+
+.faq-section {
+  background: #faf7f2;
+  padding: 56px 20px 64px;
+  border-top: 2px solid #e8e4dd;
+}
+
+.faq-section__inner {
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.faq-section .section-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.faq-section .section-kicker {
+  margin: 0 0 8px;
+  color: #c62828;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.faq-section .section-header h2 {
+  margin: 0;
+  color: #1a1410;
+  font-size: 36px;
+}
+
+.faq-list {
+  display: grid;
+  gap: 12px;
+}
+
+.faq-item {
+  background: #ffffff;
+  border: 2px solid #e8e4dd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.faq-item[open] {
+  border-color: #d4a574;
+}
+
+.faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  color: #1a1410;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary svg {
+  flex: 0 0 auto;
+  color: #c62828;
+  transition: transform 0.2s ease;
+}
+
+.faq-item[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.faq-item p {
+  margin: 0;
+  padding: 0 20px 20px;
+  color: #3d3d3d;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.personalized-findings {
+  padding: 20px;
+  background: #faf7f2;
+  border: 2px solid #d4a574;
+  border-radius: 8px;
+  margin-top: 24px;
+}
+
+.personalized-findings h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #c49663;
+  margin: 0 0 16px 0;
+}
+
+.personalized-findings .finding-card {
+  margin-bottom: 12px;
+}
+
+.personalized-findings .finding-card:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .auth-bar-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .auth-bar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+
   .site-header .btn-brutal {
     padding: 10px 16px;
     font-size: 0.75rem;

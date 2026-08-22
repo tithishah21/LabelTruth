@@ -1,3 +1,5 @@
+import { Heart } from "lucide-react";
+
 export function Footer() {
   return (
     <footer className="site-footer" id="about">
@@ -5,7 +7,7 @@ export function Footer() {
         <div className="site-footer__brand">
           <h2>LABEL*TRUTH</h2>
           <p>
-            Your local spot for high-fidelity ingredient facts and low-fidelity jargon. Since 2024 but
+            Your local spot for high-fidelity ingredient facts and low-fidelity jargon. Since 2026 but
             feels like 1974.
           </p>
         </div>
@@ -23,7 +25,7 @@ export function Footer() {
             <span>OCR via Tesseract</span>
             <span>No health claims</span>
           </div>
-          <div className="site-footer__col" id="faq">
+          <div className="site-footer__col">
             <h4>Hours</h4>
             <span>Mon–Fri: Scan anytime</span>
             <span>Sat–Sun: Still scanning</span>
@@ -33,8 +35,9 @@ export function Footer() {
       </div>
       <div className="site-footer__bar">
         <span>© 2025 Label Truth Group</span>
-        <span>Built with React + Vite</span>
-        <span>IG / TW / TK</span>
+        <span className="footer-credit">
+          Built by Tithi with <Heart size={15} fill="currentColor" aria-label="love" />
+        </span>
       </div>
     </footer>
   );

@@ -1,0 +1,112 @@
+/* Exposure Dashboard */
+
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  color: #7d7d7d;
+}
+
+.dashboard-card.error {
+  border-left: 4px solid #ef5350;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  color: #c62828;
+}
+
+.dashboard-card.error svg {
+  flex-shrink: 0;
+  color: #ef5350;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  width: 32px;
+  height: 32px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.dashboard-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1410;
+  margin: 0 0 20px 0;
+}
+
+.dashboard-section h3 svg {
+  color: #d4a574;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.metric {
+  text-align: center;
+  padding: 16px;
+  background: #faf7f2;
+  border-radius: 8px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #d4a574;
+  margin-bottom: 4px;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: #7d7d7d;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.insight {
+  padding: 16px;
+  background: #fef3e0;
+  border-left: 4px solid #ffb74d;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #7d4a00;
+  line-height: 1.6;
+}
+
+.insight small {
+  display: block;
+  font-size: 11px;
+  color: #a0704a;
+  margin-top: 6px;
+}

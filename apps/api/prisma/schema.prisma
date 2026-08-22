@@ -1,0 +1,114 @@
+// This schema captures user accounts, health profiles, scan history, and exposure tracking.
+// PRIVACY NOTE: Health data (allergies, medical conditions) is stored here — handle deliberately.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User account — email + hashed password (JWT auth)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  passwordHash String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  profile   HealthProfile?
+  scans     Scan[]
+  exposureAggregates ExposureAggregate[]
+}
+
+// PRIVACY-SENSITIVE: Health profile tied to user account
+// Stores allergens, medical conditions, and diet type for personalized matching
+model HealthProfile {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Allergens: stored as JSON array of allergen IDs (e.g., ["milk", "peanuts"])
+  allergies String[] @default([])
+
+  // Optional display name shown in the authenticated app header
+  fullName String?
+
+  // Medical condition enum: null | "diabetes" | "hypertension"
+  medicalCondition String?
+
+  // Diet type enum: null | "vegan" | "vegetarian" | "gluten-free" | "low-sodium"
+  dietType String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Scan history — stores both generic and personalized analysis results
+model Scan {
+  id String @id @default(cuid())
+  
+  // Optional user link (guest scans allowed, but not associated with a profile)
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Raw label data
+  labelText String
+  normalizedText String
+  ingredients String[]
+
+  // Generic scoring (from existing LabelTruth logic)
+  genericFindings Json // IngredientFinding[] — DO NOT CHANGE
+  genericScore Int
+  genericRating String // "green" | "yellow" | "red"
+  genericVerdict String
+  genericQuickTake String
+
+  // Personalized scoring (if user is logged in)
+  personalizedScore Int?
+  personalizedRating String?
+  personalizedVerdict String?
+  profileMatches Json? // { allergen: string, matchedIngredients: string[] }[]
+
+  // Alternatives caching (7-day TTL)
+  alternatives ScanAlternative?
+
+  createdAt DateTime @default(now())
+}
+
+// Cached alternatives for a scan (expires after 7 days to ensure freshness)
+model ScanAlternative {
+  id String @id @default(cuid())
+  scanId String @unique
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  // Cached Open Food Facts suggestions
+  // Format: { offId: string, name: string, category: string, score: number, reason: string }[]
+  alternatives Json
+
+  cachedAt DateTime @default(now())
+  expiresAt DateTime // 7 days from cachedAt
+}
+
+// Exposure aggregates — rolling window summaries of scan history
+// Updated on every new scan, summarizes metrics for dashboard display
+model ExposureAggregate {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Window: "today" or "week"
+  window String
+
+  // Aggregated metrics from scans in this window
+  hiddenSugarGrams Int // Cumulative estimated sugar load
+  ultraProcessedCount Int // Count of scans flagged as ultra-processed
+  allergenFlagCount Int // Count of scans with allergen matches (generic)
+
+  lastUpdated DateTime @default(now())
+
+  @@unique([userId, window])
+}
