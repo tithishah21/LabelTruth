@@ -37,8 +37,8 @@ export function App() {
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   // Scan state
-  const [labelText, setLabelText] = useState(sampleLabel);
-  const [analysis, setAnalysis] = useState<ScanAnalysis>(() => analyzeIngredientText(sampleLabel));
+  const [labelText, setLabelText] = useState("");
+  const [analysis, setAnalysis] = useState<ScanAnalysis>(() => analyzeIngredientText(""));
   const [personalized, setPersonalized] = useState<PersonalizedAnalysis>({});
   const [currentScanId, setCurrentScanId] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -103,12 +103,29 @@ export function App() {
     setToken(null);
     setUserId(null);
     setAuthState("login");
-    resetDemo();
+    clearScanState();
+  }
+
+  function clearScanState() {
+    setLabelText("");
+    setAnalysis(analyzeIngredientText(""));
+    setPersonalized({});
+    setCurrentScanId(null);
+    setImagePreview(null);
+    setOcrState("idle");
+    setOcrMessage("Upload a clear ingredient label image.");
   }
 
   // ============ SCAN HANDLERS ============
 
   async function runAnalysis() {
+    if (!labelText.trim()) {
+      setAnalysis(analyzeIngredientText(""));
+      setPersonalized({});
+      setCurrentScanId(null);
+      return;
+    }
+
     if (token) {
       // Authenticated: use API for personalized analysis
       try {
