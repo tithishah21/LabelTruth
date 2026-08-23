@@ -27,6 +27,7 @@ import {
   isCacheExpired,
   type AlternativeSuggestion,
 } from "./utils/openFoodFacts";
+import { explainUnknownIngredient } from "./utils/gemini";
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -200,6 +201,34 @@ app.post("/api/scans/analyze", async (request, response) => {
     // Generic analysis (existing LabelTruth logic)
     const genericAnalysis = analyzeIngredientText(labelText);
 
+    const enrichedUnknowns = await Promise.all(
+      genericAnalysis.unknowns.map(async (finding) => {
+        const explanation = await explainUnknownIngredient(finding.name);
+        if (!explanation) return finding;
+
+        return {
+          ...finding,
+          name: explanation.label || finding.name,
+          summary: explanation.summary || finding.summary,
+          whyItMatters: explanation.whyItMatters || finding.whyItMatters,
+          tags: explanation.tags?.length ? explanation.tags : finding.tags,
+        };
+      })
+    );
+
+    const enrichedFindings = genericAnalysis.findings.map((finding) => {
+      const match = genericAnalysis.unknowns.find((unknown) => unknown.id === finding.id);
+      if (!match) return finding;
+      const enriched = enrichedUnknowns.find((item) => item.id === finding.id);
+      return enriched || finding;
+    });
+
+    const enrichedAnalysis = {
+      ...genericAnalysis,
+      findings: enrichedFindings,
+      unknowns: enrichedUnknowns,
+    };
+
     let personalizedScore: number | undefined;
     let personalizedRating: string | undefined;
     let personalizedVerdict: string | undefined;
@@ -247,6 +276,8 @@ app.post("/api/scans/analyze", async (request, response) => {
       }
     }
 
+    const analysisForStorage = enrichedAnalysis ?? genericAnalysis;
+
     // Store scan in database if user is authenticated
     let scanId: string | undefined;
     if (request.user) {
@@ -254,13 +285,13 @@ app.post("/api/scans/analyze", async (request, response) => {
         data: {
           userId: request.user.userId,
           labelText,
-          normalizedText: genericAnalysis.normalizedText,
-          ingredients: genericAnalysis.ingredients,
-          genericFindings: genericAnalysis.findings as unknown as Prisma.InputJsonValue,
-          genericScore: genericAnalysis.score,
-          genericRating: genericAnalysis.rating,
-          genericVerdict: genericAnalysis.verdict,
-          genericQuickTake: genericAnalysis.quickTake,
+          normalizedText: analysisForStorage.normalizedText,
+          ingredients: analysisForStorage.ingredients,
+          genericFindings: analysisForStorage.findings as unknown as Prisma.InputJsonValue,
+          genericScore: analysisForStorage.score,
+          genericRating: analysisForStorage.rating,
+          genericVerdict: analysisForStorage.verdict,
+          genericQuickTake: analysisForStorage.quickTake,
           personalizedScore,
           personalizedRating,
           personalizedVerdict,
@@ -276,7 +307,7 @@ app.post("/api/scans/analyze", async (request, response) => {
     // Return response
     response.json({
       scanId,
-      generic: genericAnalysis,
+      generic: enrichedAnalysis ?? genericAnalysis,
       personalized: request.user
         ? {
             score: personalizedScore,
@@ -500,7 +531,7 @@ app.get("/api/scans/:scanId/alternatives", requireAuth, async (request, response
  * POST /api/analyze-text
  * Guest scan endpoint (no auth required, no persistence)
  */
-app.post("/api/analyze-text", (request, response) => {
+app.post("/api/analyze-text", async (request, response) => {
   const text = typeof request.body?.text === "string" ? request.body.text : "";
 
   if (!text.trim()) {
@@ -508,7 +539,34 @@ app.post("/api/analyze-text", (request, response) => {
     return;
   }
 
-  response.json(analyzeIngredientText(text));
+  const genericAnalysis = analyzeIngredientText(text);
+  const enrichedUnknowns = await Promise.all(
+    genericAnalysis.unknowns.map(async (finding) => {
+      const explanation = await explainUnknownIngredient(finding.name);
+      if (!explanation) return finding;
+
+      return {
+        ...finding,
+        name: explanation.label || finding.name,
+        summary: explanation.summary || finding.summary,
+        whyItMatters: explanation.whyItMatters || finding.whyItMatters,
+        tags: explanation.tags?.length ? explanation.tags : finding.tags,
+      };
+    })
+  );
+
+  const enrichedFindings = genericAnalysis.findings.map((finding) => {
+    const match = genericAnalysis.unknowns.find((unknown) => unknown.id === finding.id);
+    if (!match) return finding;
+    const enriched = enrichedUnknowns.find((item) => item.id === finding.id);
+    return enriched || finding;
+  });
+
+  response.json({
+    ...genericAnalysis,
+    findings: enrichedFindings,
+    unknowns: enrichedUnknowns,
+  });
 });
 
 // ============ HELPER FUNCTIONS ============

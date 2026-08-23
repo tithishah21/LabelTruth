@@ -155,7 +155,24 @@ export function App() {
         setPersonalized({});
       }
     } else {
-      // Guest: use local analysis
+      try {
+        const response = await fetch("http://localhost:4000/api/analyze-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: labelText }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          setAnalysis(data);
+          setPersonalized({});
+          setCurrentScanId(null);
+          return;
+        }
+      } catch {
+        // fallback below
+      }
+
       const guestAnalysis = analyzeIngredientText(labelText);
       setAnalysis(guestAnalysis);
       setPersonalized({});
@@ -203,10 +220,28 @@ export function App() {
           // Will use API with new labelText
           runAnalysis();
         } else {
-          // Guest analysis
-          const guestAnalysis = analyzeIngredientText(extractedText);
-          setAnalysis(guestAnalysis);
-          setPersonalized({});
+          // Guest analysis via backend so Gemini can enrich unknown ingredients
+          void (async () => {
+            try {
+              const response = await fetch("http://localhost:4000/api/analyze-text", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: extractedText }),
+              });
+              const data = await response.json();
+              if (response.ok) {
+                setAnalysis(data);
+                setPersonalized({});
+                return;
+              }
+            } catch {
+              // fallback below
+            }
+
+            const guestAnalysis = analyzeIngredientText(extractedText);
+            setAnalysis(guestAnalysis);
+            setPersonalized({});
+          })();
         }
       }, 100);
     } catch (error) {
