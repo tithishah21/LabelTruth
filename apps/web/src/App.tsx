@@ -330,7 +330,6 @@ export function App() {
       <section className="workspace-section">
         <div className="section-header">
           <h2>Scan Breakdown</h2>
-          <a href="#results">See all findings →</a>
         </div>
 
         <div className="workspace-grid">

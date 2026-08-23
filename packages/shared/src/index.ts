@@ -148,6 +148,16 @@ const lexicon: LexiconEntry[] = [
     tags: ["allergen", "gluten"]
   },
   {
+    id: "allergen-fish",
+    name: "Fish",
+    aliases: ["fish", "fish extract", "salmon", "cod", "tuna", "sardine", "anchovy", "herring", "seafood"],
+    category: "allergen",
+    severity: "high",
+    summary: "A major allergen that can trigger reactions in some people.",
+    whyItMatters: "Fish can appear directly or in extracts, broths, and mixed seasonings, so it is easy to miss in ingredient lists.",
+    tags: ["allergen", "seafood"]
+  },
+  {
     id: "up-hydrogenated-oil",
     name: "Hydrogenated oil",
     aliases: ["hydrogenated oil", "partially hydrogenated", "vegetable shortening"],
