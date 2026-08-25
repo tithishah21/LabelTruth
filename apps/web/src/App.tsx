@@ -85,6 +85,14 @@ export function App() {
     [analysis]
   );
 
+  const profileConflictTerms = useMemo(() => {
+    const terms = [
+      ...(personalized.profileMatches?.flatMap((match) => match.matchedIngredients) || []),
+      ...(personalized.findings?.map((finding) => finding.matchedTerm) || []),
+    ];
+    return new Set(terms.map((term) => term.toLowerCase().trim()));
+  }, [personalized]);
+
   // ============ AUTH HANDLERS ============
 
   function handleLoginSuccess(newToken: string, newUserId: string) {
@@ -470,7 +478,11 @@ export function App() {
             <div className="findings-list">
               {analysis.findings.length > 0 ? (
                 analysis.findings.map((finding) => (
-                  <FindingCard key={`${finding.id}-${finding.matchedTerm}`} finding={finding} />
+                  <FindingCard
+                    key={`${finding.id}-${finding.matchedTerm}`}
+                    finding={finding}
+                    isProfileConflict={profileConflictTerms.has(finding.matchedTerm.toLowerCase().trim())}
+                  />
                 ))
               ) : (
                 <div className="empty-state">
@@ -487,6 +499,7 @@ export function App() {
                   <FindingCard
                     key={`${finding.id}-${finding.matchedTerm}`}
                     finding={finding}
+                    isProfileConflict
                   />
                 ))}
               </div>

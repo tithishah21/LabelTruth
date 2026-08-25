@@ -3,6 +3,7 @@ import type { IngredientFinding } from "@labeltruth/shared";
 
 interface FindingCardProps {
   finding: IngredientFinding;
+  isProfileConflict?: boolean;
 }
 
 const categoryIcon = {
@@ -13,8 +14,18 @@ const categoryIcon = {
   unknown: Info
 };
 
-export function FindingCard({ finding }: FindingCardProps) {
+export function FindingCard({ finding, isProfileConflict = false }: FindingCardProps) {
   const Icon = categoryIcon[finding.category];
+  const categoryLabel = !isProfileConflict && finding.category === "unknown"
+    ? "no profile conflict"
+    : finding.category.replace("-", " ");
+  const summary = isProfileConflict
+    ? finding.summary
+    : finding.category === "unknown"
+      ? "No profile conflict identified from the available information."
+      : finding.category === "allergen"
+        ? "This is a recognized allergen, but it does not match an allergy in your profile."
+        : finding.summary;
 
   return (
     <article className={`finding-card finding-card--${finding.severity}`}>
@@ -24,12 +35,18 @@ export function FindingCard({ finding }: FindingCardProps) {
       <div>
         <div className="finding-card__header">
           <h3>{finding.name}</h3>
-          <span>{finding.category.replace("-", " ")}</span>
+          <span>{categoryLabel}</span>
         </div>
-        <p>{finding.summary}</p>
+        <p>{summary}</p>
         <details>
           <summary>Why this matters</summary>
-          <p>{finding.whyItMatters}</p>
+          <p>
+            {isProfileConflict
+              ? finding.whyItMatters
+              : finding.category === "unknown"
+                ? "No specific conflict with your saved profile was identified. If you have a personal sensitivity, check the ingredient with a healthcare professional."
+                : finding.whyItMatters}
+          </p>
         </details>
         <div className="finding-card__tags">
           {finding.tags.map((tag) => (

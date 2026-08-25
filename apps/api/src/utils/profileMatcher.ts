@@ -54,7 +54,7 @@ const DIET_TYPE_FLAGS: Record<string, { keywords: string[]; reason: string }> = 
     reason: "Contains animal-derived ingredient (not vegan)",
   },
   vegetarian: {
-    keywords: ["meat", "beef", "pork", "chicken", "fish", "gelatin", "carmine"],
+    keywords: ["meat", "beef", "beef stock", "beef extract", "pork", "chicken", "chicken meat", "chicken stock", "chicken extract", "fish", "gelatin", "carmine"],
     reason: "Contains animal flesh or insect-derived ingredient (not vegetarian)",
   },
   "gluten-free": {

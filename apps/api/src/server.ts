@@ -27,7 +27,7 @@ import {
   isCacheExpired,
   type AlternativeSuggestion,
 } from "./utils/openFoodFacts";
-import { explainUnknownIngredient } from "./utils/gemini";
+import { classifyIngredientsWithGemini } from "./utils/gemini";
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -201,32 +201,40 @@ app.post("/api/scans/analyze", async (request, response) => {
     // Generic analysis (existing LabelTruth logic)
     const genericAnalysis = analyzeIngredientText(labelText);
 
-    const enrichedUnknowns = await Promise.all(
-      genericAnalysis.unknowns.map(async (finding) => {
-        const explanation = await explainUnknownIngredient(finding.name);
-        if (!explanation) return finding;
-
-        return {
-          ...finding,
-          name: explanation.label || finding.name,
-          summary: explanation.summary || finding.summary,
-          whyItMatters: explanation.whyItMatters || finding.whyItMatters,
-          tags: explanation.tags?.length ? explanation.tags : finding.tags,
-        };
-      })
+    const unmatchedIngredients = genericAnalysis.ingredients.filter((ingredient) =>
+      !genericAnalysis.findings.some((finding) => finding.matchedTerm === ingredient || finding.name === ingredient)
     );
+    const geminiResults = await classifyIngredientsWithGemini(unmatchedIngredients);
+    const geminiFindings = geminiResults.map((explanation, index) => {
+      const ingredient = explanation.ingredient || unmatchedIngredients[index] || explanation.label;
+      return {
+        id: `gemini-${ingredient.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`,
+        name: explanation.label || ingredient,
+        matchedTerm: ingredient,
+        category: explanation.category,
+        severity: explanation.severity,
+        summary: explanation.summary,
+        whyItMatters: explanation.whyItMatters,
+        tags: explanation.tags,
+      };
+    });
 
-    const enrichedFindings = genericAnalysis.findings.map((finding) => {
-      const match = genericAnalysis.unknowns.find((unknown) => unknown.id === finding.id);
-      if (!match) return finding;
-      const enriched = enrichedUnknowns.find((item) => item.id === finding.id);
-      return enriched || finding;
+    const aiFindings = geminiFindings.filter((finding): finding is NonNullable<typeof finding> => Boolean(finding));
+
+    const mergedFindings = [...genericAnalysis.findings, ...aiFindings];
+    const uniqueFindings = mergedFindings.filter((finding, index, list) => {
+      const key = `${finding.category}-${finding.name}-${finding.matchedTerm}`;
+      return list.findIndex((other) => `${other.category}-${other.name}-${other.matchedTerm}` === key) === index;
     });
 
     const enrichedAnalysis = {
       ...genericAnalysis,
-      findings: enrichedFindings,
-      unknowns: enrichedUnknowns,
+      findings: uniqueFindings,
+      unknowns: uniqueFindings.filter((finding) => finding.category === "unknown"),
+      additives: uniqueFindings.filter((finding) => finding.category === "additive"),
+      hiddenSugars: uniqueFindings.filter((finding) => finding.category === "hidden-sugar"),
+      allergens: uniqueFindings.filter((finding) => finding.category === "allergen"),
+      ultraProcessedMarkers: uniqueFindings.filter((finding) => finding.category === "ultra-processed"),
     };
 
     let personalizedScore: number | undefined;
@@ -540,32 +548,39 @@ app.post("/api/analyze-text", async (request, response) => {
   }
 
   const genericAnalysis = analyzeIngredientText(text);
-  const enrichedUnknowns = await Promise.all(
-    genericAnalysis.unknowns.map(async (finding) => {
-      const explanation = await explainUnknownIngredient(finding.name);
-      if (!explanation) return finding;
-
-      return {
-        ...finding,
-        name: explanation.label || finding.name,
-        summary: explanation.summary || finding.summary,
-        whyItMatters: explanation.whyItMatters || finding.whyItMatters,
-        tags: explanation.tags?.length ? explanation.tags : finding.tags,
-      };
-    })
+  const unmatchedIngredients = genericAnalysis.ingredients.filter((ingredient) =>
+    !genericAnalysis.findings.some((finding) => finding.matchedTerm === ingredient || finding.name === ingredient)
   );
+  const geminiResults = await classifyIngredientsWithGemini(unmatchedIngredients);
+  const geminiFindings = geminiResults.map((explanation, index) => {
+    const ingredient = explanation.ingredient || unmatchedIngredients[index] || explanation.label;
+    return {
+      id: `gemini-${ingredient.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`,
+      name: explanation.label || ingredient,
+      matchedTerm: ingredient,
+      category: explanation.category,
+      severity: explanation.severity,
+      summary: explanation.summary,
+      whyItMatters: explanation.whyItMatters,
+      tags: explanation.tags,
+    };
+  });
 
-  const enrichedFindings = genericAnalysis.findings.map((finding) => {
-    const match = genericAnalysis.unknowns.find((unknown) => unknown.id === finding.id);
-    if (!match) return finding;
-    const enriched = enrichedUnknowns.find((item) => item.id === finding.id);
-    return enriched || finding;
+  const aiFindings = geminiFindings.filter((finding): finding is NonNullable<typeof finding> => Boolean(finding));
+  const mergedFindings = [...genericAnalysis.findings, ...aiFindings];
+  const uniqueFindings = mergedFindings.filter((finding, index, list) => {
+    const key = `${finding.category}-${finding.name}-${finding.matchedTerm}`;
+    return list.findIndex((other) => `${other.category}-${other.name}-${other.matchedTerm}` === key) === index;
   });
 
   response.json({
     ...genericAnalysis,
-    findings: enrichedFindings,
-    unknowns: enrichedUnknowns,
+    findings: uniqueFindings,
+    unknowns: uniqueFindings.filter((finding) => finding.category === "unknown"),
+    additives: uniqueFindings.filter((finding) => finding.category === "additive"),
+    hiddenSugars: uniqueFindings.filter((finding) => finding.category === "hidden-sugar"),
+    allergens: uniqueFindings.filter((finding) => finding.category === "allergen"),
+    ultraProcessedMarkers: uniqueFindings.filter((finding) => finding.category === "ultra-processed"),
   });
 });
 
