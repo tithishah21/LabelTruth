@@ -38,7 +38,7 @@ export function App() {
 
   // Scan state
   const [labelText, setLabelText] = useState("");
-  const [analysis, setAnalysis] = useState<ScanAnalysis>(() => analyzeIngredientText(""));
+  const [analysis, setAnalysis] = useState<ScanAnalysis | null>(null);
   const [personalized, setPersonalized] = useState<PersonalizedAnalysis>({});
   const [currentScanId, setCurrentScanId] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -76,12 +76,23 @@ export function App() {
   }, [token]);
 
   const summaryStats = useMemo(
-    () => [
-      { label: "Ingredients", value: analysis.ingredients.length },
-      { label: "Additives", value: analysis.additives.length },
-      { label: "Sugars", value: analysis.hiddenSugars.length },
-      { label: "Allergens", value: analysis.allergens.length }
-    ],
+    () => {
+      if (!analysis) {
+        return [
+          { label: "Ingredients", value: 0 },
+          { label: "Additives", value: 0 },
+          { label: "Sugars", value: 0 },
+          { label: "Allergens", value: 0 }
+        ];
+      }
+
+      return [
+        { label: "Ingredients", value: analysis.ingredients.length },
+        { label: "Additives", value: analysis.additives.length },
+        { label: "Sugars", value: analysis.hiddenSugars.length },
+        { label: "Allergens", value: analysis.allergens.length }
+      ];
+    },
     [analysis]
   );
 
@@ -116,7 +127,7 @@ export function App() {
 
   function clearScanState() {
     setLabelText("");
-    setAnalysis(analyzeIngredientText(""));
+    setAnalysis(null);
     setPersonalized({});
     setCurrentScanId(null);
     setImagePreview(null);
@@ -128,7 +139,7 @@ export function App() {
 
   async function runAnalysis() {
     if (!labelText.trim()) {
-      setAnalysis(analyzeIngredientText(""));
+      setAnalysis(null);
       setPersonalized({});
       setCurrentScanId(null);
       return;
@@ -362,10 +373,10 @@ export function App() {
         <div className="vibe-band__visual">
           <div className="vibe-band__rating">
             <TrafficLightBadge
-              rating={personalized?.rating || analysis.rating}
-              score={personalized?.score || analysis.score}
+              rating={personalized?.rating || analysis?.rating || "green"}
+              score={personalized?.score || analysis?.score || 0}
             />
-            <strong>{personalized?.verdict || analysis.verdict}</strong>
+            <strong>{personalized?.verdict || analysis?.verdict || "Waiting for a scan"}</strong>
           </div>
         </div>
       </section>
@@ -440,25 +451,33 @@ export function App() {
             </div>
 
             {/* Personalized badge */}
-            <PersonalizedBadge
-              genericRating={analysis.rating}
-              personalizedRating={personalized?.rating}
-              profileMatches={personalized?.profileMatches}
-            />
+            {analysis && (
+              <PersonalizedBadge
+                genericRating={analysis.rating}
+                personalizedRating={personalized?.rating}
+                profileMatches={personalized?.profileMatches}
+              />
+            )}
 
             {/* Profile matches alert */}
             {personalized?.profileMatches && (
               <ProfileMatches matches={personalized.profileMatches} />
             )}
 
-            <div className={`verdict-card verdict-card--${personalized?.rating || analysis.rating}`}>
-              <TrafficLightBadge
-                rating={personalized?.rating || analysis.rating}
-                score={personalized?.score || analysis.score}
-              />
-              <h2>{personalized?.verdict || analysis.verdict}</h2>
-              <p>{analysis.quickTake}</p>
-            </div>
+            {analysis ? (
+              <div className={`verdict-card verdict-card--${personalized?.rating || analysis.rating}`}>
+                <TrafficLightBadge
+                  rating={personalized?.rating || analysis.rating}
+                  score={personalized?.score || analysis.score}
+                />
+                <h2>{personalized?.verdict || analysis.verdict}</h2>
+                <p>{analysis.quickTake}</p>
+              </div>
+            ) : (
+              <div className="empty-state">
+                No scan yet. Upload a label image or use the sample button to preview the product analysis flow.
+              </div>
+            )}
 
             <div className="stats-grid">
               {summaryStats.map((stat) => (
@@ -469,27 +488,35 @@ export function App() {
               ))}
             </div>
 
-            <div className="ingredient-strip">
-              {analysis.ingredients.map((ingredient) => (
-                <span key={ingredient}>{ingredient}</span>
-              ))}
-            </div>
+            {analysis && (
+              <div className="ingredient-strip">
+                {analysis.ingredients.map((ingredient) => (
+                  <span key={ingredient}>{ingredient}</span>
+                ))}
+              </div>
+            )}
 
-            <div className="findings-list">
-              {analysis.findings.length > 0 ? (
-                analysis.findings.map((finding) => (
-                  <FindingCard
-                    key={`${finding.id}-${finding.matchedTerm}`}
-                    finding={finding}
-                    isProfileConflict={profileConflictTerms.has(finding.matchedTerm.toLowerCase().trim())}
-                  />
-                ))
-              ) : (
-                <div className="empty-state">
-                  No major flags found from the current local ingredient database.
-                </div>
-              )}
-            </div>
+            {analysis ? (
+              <div className="findings-list">
+                {analysis.findings.length > 0 ? (
+                  analysis.findings.map((finding) => (
+                    <FindingCard
+                      key={`${finding.id}-${finding.matchedTerm}`}
+                      finding={finding}
+                      isProfileConflict={profileConflictTerms.has(finding.matchedTerm.toLowerCase().trim())}
+                    />
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    No major flags found from the current local ingredient database.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="empty-state">
+                Scan a product to see recognized ingredients, allergen flags, and plain-English explanations.
+              </div>
+            )}
 
             {/* Personalized findings */}
             {personalized?.findings && personalized.findings.length > 0 && (
@@ -506,7 +533,7 @@ export function App() {
             )}
 
             {/* Alternatives suggestions */}
-            {currentScanId && (
+            {currentScanId && analysis && (
               <AlternativeSuggestions
                 scanId={currentScanId}
                 token={token!}

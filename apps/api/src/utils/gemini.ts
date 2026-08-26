@@ -8,6 +8,28 @@ export interface GeminiIngredientExplanation {
   tags: string[];
 }
 
+const GENERIC_BENIGN_INGREDIENTS = new Set([
+  "salt",
+  "water",
+  "sugar",
+  "flour",
+  "oil",
+  "vegetable oil",
+  "potato starch",
+  "garlic powder",
+  "onion powder",
+  "acidity regulator",
+  "spices",
+  "extract",
+  "powder",
+  "seasoning",
+  "starch",
+  "vegetable",
+  "potato",
+  "garlic",
+  "onion"
+]);
+
 function parseGeminiJsonText(rawText: string): GeminiIngredientExplanation | null {
   const trimmed = rawText.trim();
   if (!trimmed) return null;
@@ -28,13 +50,21 @@ function parseGeminiJsonText(rawText: string): GeminiIngredientExplanation | nul
       ? parsed.severity
       : "low";
 
+    const ingredientName = typeof parsed.ingredient === "string" ? parsed.ingredient.trim() : "";
+    const labelName = typeof parsed.label === "string" ? parsed.label.trim() : "";
+    const normalizedName = (ingredientName || labelName).toLowerCase();
+
+    if (validCategory === "unknown" && normalizedName && GENERIC_BENIGN_INGREDIENTS.has(normalizedName)) {
+      return null;
+    }
+
     const tags = Array.isArray(parsed.tags)
       ? parsed.tags.filter((tag: unknown): tag is string => typeof tag === "string")
       : ["needs verification"];
 
     return {
-      ingredient: typeof parsed.ingredient === "string" ? parsed.ingredient : undefined,
-      label: typeof parsed.label === "string" ? parsed.label : "Ingredient",
+      ingredient: ingredientName || undefined,
+      label: labelName || "Ingredient",
       category: validCategory,
       severity,
       summary: typeof parsed.summary === "string" ? parsed.summary : "This ingredient may need verification.",
@@ -112,9 +142,13 @@ export async function classifyIngredientsWithGemini(ingredients: string[]): Prom
   const uniqueIngredients = [...new Set(ingredients.map((ingredient) => ingredient.trim()).filter(Boolean))];
   if (uniqueIngredients.length === 0) return [];
 
-  const prompt = `You are a food label analyst. Classify every ingredient in this list. Return a JSON array only, exactly one object per input ingredient, with keys ingredient, label, category, severity, summary, whyItMatters, tags. Category: additive, hidden-sugar, allergen, ultra-processed, or unknown. Severity: low, medium, or high. Identify INS/E numbers by their actual substance name. Keep each summary and whyItMatters under 15 words. Ingredients: ${JSON.stringify(uniqueIngredients)}`;
+  const prompt = `You are a food label analyst. Classify every ingredient in this list. Return a JSON array only, exactly one object per input ingredient, with keys ingredient, label, category, severity, summary, whyItMatters, tags. Category: additive, hidden-sugar, allergen, ultra-processed, or unknown. Severity: low, medium, or high. Identify INS/E numbers by their actual substance name. Treat everyday ingredients like salt, water, vegetable oil, starch, spices, garlic, onion, potato, and acidity regulator as benign unless clearly problematic. Keep each summary and whyItMatters under 15 words. Ingredients: ${JSON.stringify(uniqueIngredients)}`;
   const text = await requestGemini(prompt, Math.min(3000, 260 + uniqueIngredients.length * 170));
-  return text ? parseGeminiJsonArray(text) : [];
+  const parsed = text ? parseGeminiJsonArray(text) : [];
+  return parsed.filter((item) => !(
+    item.category === "unknown" &&
+    item.tags.some((tag) => tag.toLowerCase().includes("verification"))
+  ));
 }
 
 export async function explainUnknownIngredient(ingredient: string): Promise<GeminiIngredientExplanation | null> {

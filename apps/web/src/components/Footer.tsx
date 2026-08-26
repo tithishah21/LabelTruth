@@ -34,7 +34,7 @@ export function Footer() {
         </div>
       </div>
       <div className="site-footer__bar">
-        <span>© 2025 Label Truth Group</span>
+        <span>© 2026 Label Truth Group</span>
         <span className="footer-credit">
           Built by Tithi with <Heart size={15} fill="currentColor" aria-label="love" />
         </span>

@@ -185,6 +185,7 @@ const commonFoodWords = new Set([
   "sugar",
   "flour",
   "oil",
+  "vegetable oil",
   "spices",
   "natural flavour",
   "natural flavor",
@@ -198,14 +199,32 @@ const commonFoodWords = new Set([
   "peanuts",
   "vanilla",
   "yeast",
-  "starch"
+  "starch",
+  "potato starch",
+  "garlic",
+  "garlic powder",
+  "onion",
+  "onion powder",
+  "acidity regulator",
+  "acid regulator",
+  "extract",
+  "powder",
+  "seasoning",
+  "seasonings",
+  "acid",
+  "acidity",
+  "regulator",
+  "vegetable",
+  "potato"
 ]);
 
 export function analyzeIngredientText(input: string): ScanAnalysis {
   const normalizedText = normalizeWhitespace(input);
   const ingredients = splitIngredients(normalizedText);
   const findings = dedupeFindings(ingredients.flatMap((ingredient) => matchIngredient(ingredient)));
-  const matchedIngredients = new Set(findings.map((finding) => normalizeTerm(finding.matchedTerm)));
+  const matchedIngredients = new Set(
+    findings.flatMap((finding) => getNormalizedFindingTerms(finding.matchedTerm))
+  );
   const unknowns = ingredients
     .filter((ingredient) => {
       const normalized = normalizeTerm(ingredient);
@@ -310,13 +329,43 @@ function matchIngredient(ingredient: string): IngredientFinding[] {
 }
 
 function dedupeFindings(findings: IngredientFinding[]): IngredientFinding[] {
-  const seen = new Set<string>();
-  return findings.filter((finding) => {
-    const key = `${finding.id}-${normalizeTerm(finding.matchedTerm)}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  const merged = new Map<string, IngredientFinding>();
+
+  for (const finding of findings) {
+    const normalizedName = normalizeTerm(finding.name);
+    const key = `${finding.category}:${normalizedName}`;
+    const existing = merged.get(key);
+
+    if (!existing) {
+      merged.set(key, { ...finding });
+      continue;
+    }
+
+    const combinedMatchedTerms = Array.from(
+      new Set([...getNormalizedFindingTerms(existing.matchedTerm), ...getNormalizedFindingTerms(finding.matchedTerm)])
+    )
+      .filter(Boolean)
+      .map((term) => term.trim())
+      .filter((term) => term.length > 0)
+      .join(", ");
+
+    merged.set(key, {
+      ...existing,
+      matchedTerm: combinedMatchedTerms,
+      tags: Array.from(new Set([...existing.tags, ...finding.tags])),
+    });
+  }
+
+  return [...merged.values()];
+}
+
+function getNormalizedFindingTerms(value: string): string[] {
+  if (!value) return [];
+
+  return value
+    .split(/[;,]|\s+and\s+|\s+or\s+/i)
+    .map((term) => normalizeTerm(term))
+    .filter(Boolean);
 }
 
 function calculateScore(input: {

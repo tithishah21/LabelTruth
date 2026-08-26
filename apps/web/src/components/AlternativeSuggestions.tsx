@@ -82,7 +82,7 @@ export function AlternativeSuggestions({
 
       {!isLoading && !error && alternatives.length === 0 && (
         <p className="no-alternatives">
-          No alternatives found in our database at this time. Check back soon!
+          No alternatives are available for this product yet. We&apos;re expanding the comparison database soon.
         </p>
       )}
 
